@@ -1,6 +1,6 @@
 import threading
 import numpy as np
-
+import utilities
 
 class Orbit(threading.Thread):
     i = 0
@@ -18,8 +18,11 @@ class Orbit(threading.Thread):
 
         self.positions = [[init_pos[0]], [init_pos[1]]]
         self.velocities = [[init_vel[0]], [init_vel[1]]]
-        self.potential_energy = [-4 * np.pi ** 2 / (np.linalg.norm(init_pos))]
-        self.kinetic_energy = [0.5 * np.linalg.norm(init_vel) ** 2]
+
+        if self.energy() is not None:
+            pot, kin = self.energy()
+            self.potential_energy = [pot]
+            self.kinetic_energy = [kin]
 
         self.deltaT = deltaT
         self.name = name
@@ -130,3 +133,84 @@ class ECOrbit(Orbit):
         self.positions[1].append(new_pos[1])
 
         return new_vel, new_pos
+
+
+class RK4OrbitSI(RK4Orbit):
+    rksi_i = 0
+
+    def __init__(self, deltaT, init_pos, init_vel, name=None, steps=None, alpha=0, beta=2):
+        if name is None:
+            name = "Orbit simulation (Runge-Kutta 4 SI, h = {0}) #{1}".format(deltaT, RK4OrbitSI.rksi_i)
+        RK4OrbitSI.rksi_i += 1
+        super().__init__(deltaT, init_pos, init_vel, name, steps, alpha, beta)
+
+    def accel(self, pos):
+        r = np.linalg.norm(pos)
+        accel = -utilities.G * utilities.masses_kg['earth'] * pos / r**(self.beta + 1) * (1 + self.alpha / r**2)
+        return accel
+
+    def energy(self, pos=None, vel=None):
+        if pos is None:
+            pos = self.pos()
+        if vel is None:
+            vel = self.vel()
+        pot = -utilities.G * utilities.masses_kg['earth'] / np.linalg.norm(pos)
+        kin = 0.5 * np.linalg.norm(vel) ** 2
+        return pot, kin
+
+
+class RK4DualOrbit(RK4Orbit):
+    rkdual_i = 0
+
+    def __init__(self, deltaT, init_pos, init_vel, mass, name=None, steps=None):
+        if name is None:
+            name = "Orbit simulation (Euler-Cromer, h = {0}) #{1}".format(deltaT, RK4DualOrbit.rkdual_i)
+        RK4DualOrbit.rkdual_i += 1
+        self.inter_planet: RK4DualOrbit = None
+        self.mass = mass
+        super().__init__(deltaT, init_pos, init_vel, name, steps, alpha=0, beta=2)
+
+    def link(self, inter_planet: Orbit):
+        self.inter_planet = inter_planet
+
+        pot, kin = self.energy()
+        self.potential_energy = [pot]
+        self.kinetic_energy = [kin]
+
+    def accel(self, pos):
+        if self.inter_planet is None:
+            return None
+
+        r = np.linalg.norm(pos)
+        GMs = utilities.GMs
+        ratio = self.inter_planet.mass / utilities.masses_e['sun']
+        inter_pos = self.inter_planet.pos()
+        accel = -(GMs * pos / r**3) - (ratio*GMs * (pos - inter_pos) / r**3)
+        return accel
+
+    def energy(self, pos=None, vel=None):
+        if self.inter_planet is None:
+            return None
+
+        if pos is None:
+            pos = self.pos()
+        if vel is None:
+            vel = self.vel()
+
+        GMs = utilities.GMs
+        inter_pos = self.inter_planet.pos()
+        ratio = self.inter_planet.mass / utilities.masses_e['sun']
+        pot = -(GMs / np.linalg.norm(pos)) - (ratio * GMs / np.linalg.norm(pos - inter_pos))
+        kin = 0.5 * np.linalg.norm(vel) ** 2
+        return pot, kin
+
+    def step(self, deltaT=None):
+        if self.inter_planet is None:
+            return
+        super().step(deltaT)
+
+    def run(self):
+        if self.inter_planet is None:
+            return
+        for i in range(self.steps):
+            self.step()

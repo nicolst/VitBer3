@@ -1,5 +1,7 @@
 import numpy as np
 
+G = 6.67408E-11
+
 # GMs in units AU and yr
 GMs = 4 * np.pi ** 2
 
@@ -13,6 +15,13 @@ masses_e = {'sun': 333480,
             'uranus': 14.56,
             'neptune': 17.15,
             'pluto': 0.002}
+
+masses_kg = {}
+for k,v in masses_e.items():
+    masses_kg[k] = v * 6.0E24
+
+for v in masses_kg.values():
+    print(v)
 
 eccentricity = {'mercury': 0.2056,
                 'venus': 0.0068,
@@ -45,6 +54,7 @@ period = {'mercury': 0.2408,
           'neptune': 164.81,
           'pluto': 248.53}
 
+radius = {'earth': 6.3781E6}
 
 def v_max(planet):
     e = eccentricity[planet]
@@ -52,4 +62,10 @@ def v_max(planet):
     Mp = masses_e[planet]
     Ms = masses_e['sun']
     ratio = Mp / Ms
-    return np.sqrt(GMs) * np.sqrt((1 + e) / (a * (1 - e)) * (1 + ratio))
+    return np.sqrt(GMs * (1 + e) / (a * (1 - e)) * (1 + ratio))
+
+def v_max_SI(M, m, Rp, Ra):
+    e = (Ra - Rp) / (Ra + Rp)
+    ratio = m / M
+    a = Rp / (1 - e)
+    return np.sqrt(G * M * (1 + e) / (a * (1 - e)) * (1 + ratio))
