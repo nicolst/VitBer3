@@ -3,39 +3,66 @@ import matplotlib.pyplot as plt
 import time
 from orbits import ECOrbit, RK4Orbit
 
-lin200 = np.linspace(0.00001, 0.001, 2000)
-lin201 = np.linspace(0.01, 0.2, 1)
+lin_rk4 = np.linspace(0.00001, 1.0, 2000)
+#lin_ec = np.linspace(0.01, 0.1, 1)
+lin_ec = lin_rk4[:]
+
 
 ts = time.time()
 
-orbits200 = [RK4Orbit(i, (1, 0), (0, 2 * np.pi), steps=int(1 / i) * 3) for i in lin200]
-orbits201 = [RK4Orbit(i, (1, 0), (0, 2 * np.pi), steps=int(1 / i) * 3) for i in lin201]
+orbits_rk4 = [RK4Orbit(i, (1, 0), (0, 2 * np.pi), steps=int(1 / i)) for i in lin_rk4]
+orbits_ec = [ECOrbit(i, (1, 0), (0, 2 * np.pi), steps=int(1 / i)) for i in lin_ec]
 
-for orbit in orbits200:
+for orbit in orbits_rk4:
     orbit.start()
 
-for orbit in orbits201:
+for orbit in orbits_ec:
     orbit.start()
 
-for orbit in orbits200:
+for orbit in orbits_rk4:
     orbit.join()
 
-for orbit in orbits201:
+for orbit in orbits_ec:
     orbit.join()
 
 tf = time.time()
 print("Time taken: {0}".format(tf - ts))
 
 plt.figure(1)
-plt.title("RK4, linspace 201")
-plt.plot(lin201, [(orbit.potential_energy[-1] - orbit.potential_energy[0]
-                   + orbit.kinetic_energy[-1] - orbit.kinetic_energy[0]) for orbit in orbits201])
+plt.title("Euler-Cromer, total energy change")
+plt.ylabel(r"$|\Delta(E/m)|$ (AU$^2$ / yr$^2$)")
+plt.xlabel(r"$\tau$ (yr)")
+plt.xscale('log')
+plt.yscale('log')
+plt.tight_layout()
+ec_deltaE = np.abs([(orbit.potential_energy[-1] - orbit.potential_energy[0]
+                   + orbit.kinetic_energy[-1] - orbit.kinetic_energy[0]) for orbit in orbits_ec])
+plt.plot(lin_ec, ec_deltaE)
 
 plt.figure(2)
-plt.title("RK4, linspace 200")
-plt.plot(lin200, [(orbit.potential_energy[-1] - orbit.potential_energy[0]
-                   + orbit.kinetic_energy[-1] - orbit.kinetic_energy[0]) for orbit in orbits200])
+plt.title("Runge-Kutta 4th order, total energy change")
+plt.ylabel(r"$|\Delta(E/m)|$ (AU$^2$ / yr$^2$)")
+plt.xlabel(r"$\tau$ (yr)")
+plt.xscale('log')
+plt.yscale('log')
+plt.tight_layout()
+rk4_deltaE= np.abs([(orbit.potential_energy[-1] - orbit.potential_energy[0]
+                   + orbit.kinetic_energy[-1] - orbit.kinetic_energy[0]) for orbit in orbits_rk4])
+plt.plot(lin_rk4, rk4_deltaE)
 
+
+plt.figure(3)
+
+plt.plot(lin_rk4, rk4_deltaE, 'k-', label="Runge-Kutta 4")
+plt.plot(lin_rk4, ec_deltaE, 'k--', label="Euler-Cromer")
+
+plt.title("Total energy change over 3 orbits")
+plt.ylabel(r"$|\Delta(E/m)|$ (AU$^2$ / yr$^2$)")
+plt.xlabel(r"$\tau$ (yr)")
+plt.xscale('log')
+plt.yscale('log')
+
+plt.tight_layout()
 plt.show()
 
 """

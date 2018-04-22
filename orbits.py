@@ -2,6 +2,7 @@ import threading
 import numpy as np
 import utilities
 
+
 class Orbit(threading.Thread):
     i = 0
 
@@ -37,7 +38,7 @@ class Orbit(threading.Thread):
 
     def accel(self, pos):
         r = np.linalg.norm(pos)
-        accel = -4 * np.pi ** 2 * pos / r**(self.beta + 1) * (1 + self.alpha / r**2)
+        accel = -4 * np.pi**2 * pos / r**(self.beta + 1) * (1 + self.alpha / r**2)
         return accel
 
     def energy(self, pos=None, vel=None):
@@ -123,7 +124,7 @@ class ECOrbit(Orbit):
         pos = self.pos()
         vel = self.vel()
 
-        new_vel = vel - self.accel(pos)
+        new_vel = vel + deltaT * self.accel(pos)
         new_pos = pos + deltaT * new_vel
 
         self.velocities[0].append(new_vel[0])
@@ -131,6 +132,10 @@ class ECOrbit(Orbit):
 
         self.positions[0].append(new_pos[0])
         self.positions[1].append(new_pos[1])
+
+        pot, kin = self.energy()
+        self.potential_energy.append(pot)
+        self.kinetic_energy.append(kin)
 
         return new_vel, new_pos
 
