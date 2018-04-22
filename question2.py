@@ -42,7 +42,7 @@ def part_1(step_size, steps):
     plt.title("Velocity of Mercury")
     plt.plot(np.arange(steps)*step_size, [np.sqrt(mercury.velocities[0][i]**2 + mercury.velocities[1][i]**2) for i in range(steps)], 'k-')
 
-    plt.ylabel(r"$v$ (AU/yr)")
+    plt.ylabel(r"$|v|$ (AU/yr)")
     plt.xlabel(r"$t$ (yr)")
 
     plt.tight_layout()
